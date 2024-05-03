@@ -220,6 +220,9 @@ def test(page_content, videos):
     
 
 def add_to_overall_list(driver, videos):
+    # Hide the header by changing its CSS 'display' property to 'none'
+    driver.execute_script("document.querySelector('.DesktopNavigation_navContainer__Uxlq5').style.display = 'none';")
+    
     video_element_list = driver.find_elements(By.CLASS_NAME, "StoryListTile_container__Ttl7x")
     
     # ! TESTING
@@ -252,18 +255,37 @@ def add_to_overall_list(driver, videos):
                 driver.execute_script("arguments[0].scrollIntoView(true);", matching_element)
                 driver.execute_script("window.scrollBy(0, -window.innerHeight / 2);")  # Adjust scrolling
                 
-                # ! Can element to already existing list BUT MOST IMPORTANT can also grab the convert link since you are already clicking on every video
-                
-                time.sleep(20)
+                time.sleep(10) 
                 try:
                     WebDriverWait(driver, 10).until(EC.element_to_be_clickable(matching_element))
                     matching_element.click()
                     print(f"Clicked on video: {video['VideoName']}")
+                    time.sleep(1)
+                    # ! Can element to already existing list BUT MOST IMPORTANT can also grab the convert link since you are already clicking on every video
+                    # Elements to Scrape: video_id, convert_link, 
+                    
+                    soup = BeautifulSoup(driver.page_source, 'html.parser')
+                    current_url = driver.current_url
+                    convert_element = soup.find('source', {'type': 'video/mp4'})
+                    
+                    if convert_element:
+                        convert_link = convert_element.get('src')
+                    else:
+                        print("Convert Link Not Found")
+                        convert_link = None
+                    
+                    print(current_url)
+                    print(convert_link)
+
+                    time.sleep(random.randint(10, 15))
                 except (TimeoutException, ElementClickInterceptedException) as e:
                     print(f"Failed to click on the video due to: {str(e)}")
+                    time.sleep(5)
             else:
                 print("No matching video found.")
     
+    
+
 
 if __name__ == "__main__":
     main()
