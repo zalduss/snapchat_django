@@ -185,11 +185,11 @@ def extract_channel_videos(data, existing_videos):
                 
                 existing_videos.append(new_video)
     
-    new_list = json.dumps(existing_videos, indent=4)
-    with open('new_list.json', 'w') as f:
-        f.write(new_list)
+    test(existing_videos)
 
-        
+    # with open('new_list.json', 'w') as f:
+        # f.write({"Videos": existing_videosnew_list})
+
     
     
          # print(True)
@@ -200,11 +200,20 @@ def extract_channel_videos(data, existing_videos):
     
     
 
-
+def test(data):
     
+    # with open('new_list.json', 'r') as file:
+        # data = file.read()
+        
+    for video in data:
+        print(video)
+        
+        if 'VideoID' not in video or 'VideoLink' not in video:
+            print(f"Missing data for video: {video['VideoName']} - Season {video['SeasonNumber']} Episode {video['Episode']}")
     
 
 
 if __name__ == "__main__":
     main()
+    # test()
 
