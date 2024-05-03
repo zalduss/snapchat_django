@@ -4,6 +4,9 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException
 
 import time
 import json
@@ -27,23 +30,27 @@ from bs4 import BeautifulSoup
 
 
 def main():
-    # driver = chrome_webdriver()
-    # driver.get("https://www.snapchat.com/p/71ef7cb0-60b5-4930-b2de-3bc88fac5c7f/2525901834393600")
-    # driver.get("https://www.recapafteruse.co.uk/")
-    # driver.implicitly_wait(10);
+    driver = chrome_webdriver()
+    driver.get("https://www.snapchat.com/p/71ef7cb0-60b5-4930-b2de-3bc88fac5c7f/2525901834393600")
+    driver.implicitly_wait(10);
     
     #* 1. Scroll down and load all videos    
-    # scroll_to_bottom(driver)
+    scroll_to_bottom(driver)
     
-    # data = driver.page_source
+    data = driver.page_source
     #* 2. Extract Preview videos from json 
-    with open('content.html', 'r', encoding='utf-8') as f:
-        data = f.read()
+    # with open('content.html', 'r', encoding='utf-8') as f:
+        # data = f.read()
     videos_list = extract_video_list(data)
     
     
     #* 3. Iterate through video elements and compare if they already exist in videos list
-    extract_channel_videos(data, videos_list)
+    channel_videos = extract_channel_videos(data, videos_list)
+
+    # driver = ''
+    #*4. Check the video list against the element list using the Season number and episode number
+    add_to_overall_list(driver, channel_videos)
+    
     
     # with open("content.html", 'w', encoding='utf-8') as f:
         # f.write(driver.page_source)
@@ -152,8 +159,8 @@ def extract_channel_videos(data, existing_videos):
     # with open('data.html', 'w', encoding='utf-8') as f:
         # f.write(data)
         
-    with open('data.html', 'r', encoding='utf-8') as f:
-        data = f.read()
+    # with open('data.html', 'r', encoding='utf-8') as f:
+        # data = f.read()
     
     soup = BeautifulSoup(data, 'html.parser')
     
@@ -185,7 +192,7 @@ def extract_channel_videos(data, existing_videos):
                 
                 existing_videos.append(new_video)
     
-    test(existing_videos)
+    return existing_videos
 
     # with open('new_list.json', 'w') as f:
         # f.write({"Videos": existing_videosnew_list})
@@ -200,18 +207,63 @@ def extract_channel_videos(data, existing_videos):
     
     
 
-def test(data):
+def test(page_content, videos):
     
     # with open('new_list.json', 'r') as file:
         # data = file.read()
         
-    for video in data:
+    for video in videos:
         print(video)
         
         if 'VideoID' not in video or 'VideoLink' not in video:
             print(f"Missing data for video: {video['VideoName']} - Season {video['SeasonNumber']} Episode {video['Episode']}")
     
 
+def add_to_overall_list(driver, videos):
+    video_element_list = driver.find_elements(By.CLASS_NAME, "StoryListTile_container__Ttl7x")
+    
+    # ! TESTING
+    # with open('data.html', 'r', encoding='utf-8') as f:
+    #     data = f.read()
+    # soup = BeautifulSoup(data, 'html.parser')
+    
+    # video_element_list = soup.select("div.StoryListTile_container__Ttl7x")
+    # ! -------------------------
+    
+    
+    for video in videos:
+        print("*" * 80)
+        print(video)
+        
+        if 'VideoID' not in video or 'VideoLink' not in video:
+            print(f"Missing data for video: {video['VideoName']} - Season {video['SeasonNumber']} Episode {video['Episode']}")
+
+            # Construct the text pattern to search for
+            season_episode_text = f"Series {video['SeasonNumber']}, Episode {video['Episode']}"
+            
+            # Filter elements to find a match
+            matching_elements = [elem for elem in video_element_list if season_episode_text in elem.text]
+
+            # Check if we found any matching elements
+            if matching_elements:
+                matching_element = matching_elements[0]
+
+                # Scroll the element into view and then adjust the scroll
+                driver.execute_script("arguments[0].scrollIntoView(true);", matching_element)
+                driver.execute_script("window.scrollBy(0, -window.innerHeight / 2);")  # Adjust scrolling
+                
+                # ! Can element to already existing list BUT MOST IMPORTANT can also grab the convert link since you are already clicking on every video
+                
+                time.sleep(20)
+                try:
+                    WebDriverWait(driver, 10).until(EC.element_to_be_clickable(matching_element))
+                    matching_element.click()
+                    print(f"Clicked on video: {video['VideoName']}")
+                except (TimeoutException, ElementClickInterceptedException) as e:
+                    print(f"Failed to click on the video due to: {str(e)}")
+            else:
+                print("No matching video found.")
+    
 
 if __name__ == "__main__":
     main()
